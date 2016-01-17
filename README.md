@@ -14,3 +14,11 @@
   <li>Path: result.json  # result.json is the raw data crawled from webpage.
   <li>Path: resultFinal.json # It is raw data handled by pipelines.</li>
 </td>
+<h2 style="color:red;">Note</h2>
+
+<p>Before Run the Project, Make Sure You Have Already Setup Scrapy Environment
+<a href="http://doc.scrapy.org/en/latest/intro/install.html">Click to Learn How To Install Scrapy</a>
+</p>
+
+<p>Do Not Forget To Install Selenium. ($ pip install Selenium)</p>
+<p>Command to Run. $ scrapy crawl spiderName -o outputFileName -t outputFileType</p>
