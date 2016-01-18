@@ -20,15 +20,23 @@ class hotelSpider(Spider):
 #                                   ,callback='parse_eachHotel')
 #        )
 
+    #initialize once the spider start.
     def __init__(self):
         self.browser = webdriver.Firefox()
 
+    #done once the spider finished.
     def __del__(self):
         self.browser.close()
+
+    #after __init__(), the spider goes from here.
     def parse(self,response):
         sel = Selector(response)
+
+       
         datas = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[3]//p[@class="h_info_b1"]')
         prices = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[@class="h_info_pri"]/p/a')
+
+            
         #price for each hotel they are located in different location,
         #we used another list -prices to store it and track it by count
         items = []
@@ -49,25 +57,41 @@ class hotelSpider(Spider):
         #return items
 
 
-            
+    #the request from the parse(), will call this function.
     def parse_eachHotel(self,response):
         download_delay = 2
         self.browser.get(response.url)
         #let javascript load
-  #      wait = WebDriverWait(self.browser,10)
+#        wait = WebDriverWait(self.browser,10)
 #        wait.until(EC.presence_of_element_located(self.browser.find_element_by_class_name('htype_info_name')))
         sel = Selector(text=self.browser.page_source)
         print sel
+        
         names = sel.xpath('/html/body/div[3]/div/div[1]/div[@class="hdetail_main hrela_name"]')
- #       names = sel.xpath('/html/body/div[3]/div/div[1]/div[2]/div[1]/div[1]/div[1]/div[@class="t24 yahei c333 mb7"]')
-        datas = sel.xpath('/html/body/div[4]/div/div[1]/div[4]/div/div/div[@class="htype_item on"]/div[@class="htype_info clearfix"]')
+        data_1 = sel.xpath('/html/body/div[4]/div/div[1]/div[4]/div/div/div[@class="htype_item on"]/div[@class="htype_info clearfix"]')
+        
+ 
+        #since there are two different xpath for webpage.
+        #so we check the first extraction from xpath
+        
+        #if the extraction is empty;
+        if not names:
+            #we used the other xpath for extracting data.
+           namesNew = sel.xpath('/html/body/div[3]/div/div[1]/div[2]/div[1]/div[1]/div[@class="hrela_name left"]/div[1]')
+           name = namesNew[0].xpath('h1/text()').extract()
+           data_2 = sel.xpath('/html/body/div[4]/div/div[1]/div[1]/div[3]/div/div[@class="htype_list"]/div[@class="htype_item on"]/div[@class="htype_info clearfix"]')
+          
+           datas =  data_2
+        else:
+           name = names[0].xpath('div[@class="t24 yahei"]/@title').extract()
+           datas = data_1
         items = []
+        
         for data in datas:
             item = hotelItem()
  #           item["name"] = names[0].xpath('h1/text()').extract()
-            item["name"] = names[0].xpath('div[1]/@title').extract()
+            item["name"] = name#names[0].xpath('div[1]/@title').extract()
             item["htype"] = data.xpath('div[@class="htype_info_nt"]/p[@class="htype_info_name"]/span/text()').extract()
- #           item["ht_name"]  
             item["price"] = data.xpath('div[@class="htype_info_pb right"]/p[@class="cf55"]/span[@class="htype_info_num"]/text()').extract()
             item["link"] = 1
             items.append(item)
