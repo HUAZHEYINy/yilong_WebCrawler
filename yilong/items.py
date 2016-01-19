@@ -17,6 +17,7 @@ class YilongItem(scrapy.Item):
 class hotelItem(Item):
     name = Field()
     htype = Field()
- #   ht_name = Field()
-    price = Field()
+    hprice = Field()
+    ht_name = Field()
+    ht_price = Field()
     link = Field()
