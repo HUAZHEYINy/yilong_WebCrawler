@@ -18,7 +18,12 @@ class hotelSpider(Spider):
     searchItem = raw_input("Please input what you want to search?")
  #   searchItem = "五星级"
     print searchItem
+
     
+    #append all of the link into links
+    links = []
+
+    #name of spider
     name = "hotel"
     start_urls = ["http://hotel.elong.com/search/list_cn_0101.html?Keywords="+searchItem+"&KeywordsType=999&aioIndex=-1&aioVal="+searchItem]
                 
@@ -37,30 +42,79 @@ class hotelSpider(Spider):
 
     #after __init__(), the spider goes from here.
     def parse(self,response):
-        sel = Selector(response)
-
-       
-        datas = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[3]//p[@class="h_info_b1"]')
-        prices = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[@class="h_info_pri"]/p/a')
-            
-        #price for each hotel they are located in different location,
-        #we used another list -prices to store it and track it by count
-        items = []
         
-        count = 0
-        for data in datas:
- #           item = hotelItem()
-#            item["price"] = prices[count].xpath('span[2]/text()').extract()
-#            item["name"] = data.xpath('a/text()').extract()            
-            link = data.xpath('a/@href').extract()
-#            item["link"] = link
-#            items.append(item)
-            print 'http://hotel.elong.com'+link[0],count
-            #from there we extract all of the sublink from the start url
-            #and pass it to a new parse function to extract the real data
-            yield Request(url = 'http://hotel.elong.com'+link[0],callback= self.parse_eachHotel)
-            count += 1
-        #return items
+        #use browser to open link: response.url in this case, the url is start_url
+        self.browser.get(response.url)
+
+        #after open successfully, load the whole page source
+        sel = Selector(text = self.browser.page_source)
+
+        #I did not a little bit research, in this elong.com. all of the page of item(navigation for direct pages)
+        #have the exact same xpath, and also the last second one is the biggest number of page.
+        #So we can use this feature to find out how many pages in total
+        urls = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[6]/a/text()').extract()
+
+        #pages in total
+        total_page = urls[len(urls)-2]
+        page_count = 1
+
+        while True:
+            
+            #find the "go to next page" button, and click it go to next page
+
+            #right here we only consider the first three pages
+
+            #if page_count < total_page
+            if page_count < 2:
+
+                #find the button,
+                button = self.browser.find_element_by_xpath('/html/body/div[2]/div[5]/div[1]/div[6]/a[@class="page_next"]')                                              
+
+                #after open successfully, load the whole page source
+                sel = Selector(text = self.browser.page_source)
+    
+                # start to do the jobs.
+                datas = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[3]//p[@class="h_info_b1"]')
+                prices = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[@class="h_info_pri"]/p/a')
+            
+                
+                count = 0
+                for data in datas:
+           
+                    link = data.xpath('a/@href').extract()
+                    print 'http://hotel.elong.com'+link[0],count
+                    self.links.append('http://hotel.elong.com'+link[0])
+                #from there we extract all of the sublink from the start url
+                #and pass it to a new parse function to extract the real data
+                    count += 1
+
+                #simulate browser action - click
+                button.click()
+
+                #sleep for a while and waiting for ajax refresh
+                time.sleep(5)
+                
+                page_count += 1
+ 
+            else:
+                sel = Selector(text = self.browser.page_source)
+                datas = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[3]//p[@class="h_info_b1"]')
+                prices = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[@class="h_info_pri"]/p/a')
+
+
+                count = 0
+                for data in datas:
+                    link = data.xpath('a/@href').extract()
+                    print 'http://hotel.elong.com'+link[0],count
+                    self.links.append('http://hotel.elong.com' + link[0])
+                    count += 1
+                break
+
+        #now we have stored all of the hotel link from each page.
+        #just need to yield all of the links to do further jobs.
+        for temp in self.links:
+            yield Request(url = temp,callback= self.parse_eachHotel)
+            
 
 
     #the request from the parse(), will call this function.
@@ -68,9 +122,7 @@ class hotelSpider(Spider):
         download_delay = 2
         #let javascript load
         self.browser.get(response.url)
-        wait = WebDriverWait(self.browser,10)
- #       sel.browser.get("http://www.baidu.com")
-#        wait.until(EC.presence_of_element_located(self.browser.find_element_by_class_name('htype_info_name')))
+        
         sel = Selector(text=self.browser.page_source)
         print sel
 
