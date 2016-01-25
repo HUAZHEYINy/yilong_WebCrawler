@@ -8,6 +8,7 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 
 from yilong.items import hotelItem
@@ -15,18 +16,20 @@ from yilong.items import hotelItem
 class hotelSpider(Spider):
 
     #we can input what kind of hotel you like for searching
-    searchItem = raw_input("Please input what you want to search?")
+ #   searchItem = raw_input("Please input what you want to search?")
  #   searchItem = "五星级"
-    print searchItem
+ #   print searchItem
 
     
     #append all of the link into links
     links = []
 
+    #count of links
+    countLink = 0
     #name of spider
     name = "hotel"
-    start_urls = ["http://hotel.elong.com/search/list_cn_0101.html?Keywords="+searchItem+"&KeywordsType=999&aioIndex=-1&aioVal="+searchItem]
-                
+ #   start_urls = ["http://hotel.elong.com/search/list_cn_0101.html?Keywords="+searchItem+"&KeywordsType=999&aioIndex=-1&aioVal="+searchItem]
+    start_urls = ["http://www.elong.com"]                
 #    rules = (
 #            Rule(SgmlLinkExtractor(restrict_xpaths=('/html/body/div[2]/div[5]/div[1]/div[5]/div/div[@class="h_item"]/div/div[2]/div[3]//p[@class="h_info_b1]'))
 #                                   ,callback='parse_eachHotel')
@@ -38,7 +41,7 @@ class hotelSpider(Spider):
 
     #done once the spider finished.
     def __del__(self):
-        self.browser.close()
+        self.browser.quit()
 
     #after __init__(), the spider goes from here.
     def parse(self,response):
@@ -46,6 +49,71 @@ class hotelSpider(Spider):
         #use browser to open link: response.url in this case, the url is start_url
         self.browser.get(response.url)
 
+        #from the home page find the "关键词、目的地、入住、退房(搜索条)和搜索按钮"
+        dest = self.browser.find_element_by_id('hotelCity')
+        checkInDate = self.browser.find_element_by_id('hotelCheckInDate')
+        checkOutDate = self.browser.find_element_by_id('hotelCheckoutDate')
+        keywords = self.browser.find_element_by_xpath('/html/body/div[2]/div[2]/div/div/div/div/div[1]/div[2]/dl[3]/dd[@class="w332"]/input[@class="input_text c999"]')
+        searchButton = self.browser.find_element_by_xpath('/html/body/div[2]/div[2]/div/div/div/div/div[1]/div[2]/div[@class="submit_wrap mt20"]/span[@class="search_btn mr10"]')
+                                
+        #clear the default text
+        dest.clear()
+        checkInDate.clear()
+        checkOutDate.clear()
+
+        #input what we want
+ #       destInput = raw_input("Please input the destination city: ")
+
+        destInput = "北京"
+        #send text to the search item
+        dest.send_keys(unicode(destInput.decode("utf-8")))
+
+        #simulate type 'ENTER'
+        dest.send_keys(u'\ue007')
+        
+        print "Please input the check in date!"
+        checkInYearInput = "2016"#raw_input("Year: ")
+        checkInMonthInput = "1"#raw_input("Month: ")
+        checkInDayInput = "27"#raw_input("Day: ")
+
+        #catenate check in date
+        checkInDateInput = checkInYearInput + "-" + checkInMonthInput + "-" + checkInDayInput
+
+        checkInDate.send_keys(checkInDateInput)
+
+        print "Please input the check out date!"
+        checkOutYearInput = "2016"#raw_input("Year: ")
+        checkOutMonthInput = "1"#raw_input("Month: ")
+        checkOutDayInput = "28"#raw_input("Day: ")
+
+        #catenate check out date
+        checkOutDateInput = checkOutYearInput + "-" + checkOutMonthInput + "-" + checkOutDayInput
+
+        checkOutDate.send_keys(checkOutDateInput)
+
+        keywords.clear()
+        #input keywords
+        keywordsInput = "五星级"#raw_input("Please input the keywords: ")
+        
+        
+        keywords.send_keys(unicode(keywordsInput.decode("utf-8")))
+        #simulate type 'ENTER'
+ #       dest.send_keys(u'\ue007')
+
+        #click button
+        searchButton.click()
+
+
+        print "Start to wait for loading"
+ #       wait = WebDriverWait(self.browser,10).until(
+ #           EC.presence_of_element_located(By.ID,"pageContainer")
+ #           )
+
+        
+        time.sleep(5)
+ #       dest = self.browser.find_element_by_xpath('/html/body/div[2]/div[2]/div/div/div/div/div[1]/div[2]/dl[@class="clearfix"]/dd[@class="w332"]/input[@class="input_text"]')
+ #       checkInDate = self.browser.find_element_by_xpath('/html/body/div[2]/div[2]/div/div/div/div/div[1]/div[2]/dl[@class="data_picker clearfix"]/dd[1]/label/input[@class="input_text w170"]')
+ #       checkOutDate = self.browser.find_element_by_xpath('/html/body/div[2]/div[2]/div/div/div/div/div[1]/div[2]/dl[@class="data_picker clearfix"]/dd[2]/label/input[@class="input_text w170"]')
         #after open successfully, load the whole page source
         sel = Selector(text = self.browser.page_source)
 
@@ -54,8 +122,9 @@ class hotelSpider(Spider):
         #So we can use this feature to find out how many pages in total
         urls = sel.xpath('/html/body/div[2]/div[5]/div[1]/div[6]/a/text()').extract()
 
+        
         #pages in total
-        total_page = urls[len(urls)-2]
+ #       total_page = urls[len(urls)-2]
         page_count = 1
 
         while True:
@@ -92,7 +161,7 @@ class hotelSpider(Spider):
                 button.click()
 
                 #sleep for a while and waiting for ajax refresh
-                time.sleep(5)
+                time.sleep(10)
                 
                 page_count += 1
  
@@ -108,6 +177,9 @@ class hotelSpider(Spider):
                     print 'http://hotel.elong.com'+link[0],count
                     self.links.append('http://hotel.elong.com' + link[0])
                     count += 1
+
+                print count
+                
                 break
 
         #now we have stored all of the hotel link from each page.
@@ -119,11 +191,30 @@ class hotelSpider(Spider):
 
     #the request from the parse(), will call this function.
     def parse_eachHotel(self,response):
+
+        newBrowser = webdriver.Firefox()
+
+        
+        #set page timeout
+        newBrowser.set_page_load_timeout(15)
+        while True:
+            try:
+                #let javascript loaded
+                newBrowser.get(response.url)
+            except TimeoutException:
+                print response.url," - Timeout, retrying..."
+                continue
+            else:
+                break
+                
+        
         download_delay = 2
         #let javascript load
-        self.browser.get(response.url)
+ #       self.browser.get(response.url)
+ #       newBrowser.get(response.url)
         
-        sel = Selector(text=self.browser.page_source)
+#        sel = Selector(text=self.browser.page_source)
+        sel = Selector(text = newBrowser.page_source)
         print sel
 
         #since there are two different xpath for webpage.
@@ -137,7 +228,8 @@ class hotelSpider(Spider):
         if not names:
             #we used the other xpath for extracting data.
             #name in the side
-           namesNew = sel.xpath('/html/body/div[3]/div/div[1]/div[2]/div[1]/div[1]/div[@class="hrela_name left"]/div[1]')                              
+           namesNew = sel.xpath('/html/body/div[3]/div/div[1]/div[2]/div[1]/div[1]/div[@class="hrela_name left"]/div[1]')
+           
            name = namesNew[0].xpath('h1/text()').extract()
            data_2 = sel.xpath('/html/body/div[4]/div/div[1]/div[1]/div[3]/div/div[@class="htype_list"]/div[@class="htype_item on"]')
            hdata_2 = sel.xpath('/html/body/div[4]/div/div[1]/div[1]/div[3]/div/div[@class="htype_list"]/div[@class="htype_item on"]/div[@class="htype_info_list"]')
@@ -148,7 +240,7 @@ class hotelSpider(Spider):
            datas = data_1
            hdatas = hdata_1
            
-        items = []
+ #       items = []
         count = 0
         for data in datas:
             item = hotelItem()
@@ -163,10 +255,13 @@ class hotelSpider(Spider):
             item["name"] = name
             item["htype"] = htype
             item["hprice"] = hprice
-            item["link"] = 1
+            item["link"] = response.url
 
             count += 1
-            items.append(item)
-        return items
+            yield item
+ #           items.append(item)
+ #       time.sleep(3)
+        newBrowser.close()
+ #       return items
             
                           
