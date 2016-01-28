@@ -10,7 +10,7 @@
   <li>Path: yilong/items.py       	 # specify what kind of item you want to store (e.g link).</li>
   <li>Path: yilong/pipilines.py   	 # specify how you want to handle the data previously stored.</li>
   <li>Path: yilong/settings.py       # specify the setting you want to set.(e.g apply pipeline for spider).</li>
-  <li>path: yilong/spiders.py				 # specify the actual spider, this file is the major spider file.
+  <li>path: yilong/spider/spiders.py				 # specify the actual spider, this file is the major spider file.
   <li>Path: result.json  # result.json is the raw data crawled from webpage.
   <li>Path: resultFinal.json # It is raw data handled by pipelines.</li>
 </td>
